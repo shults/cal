@@ -30,11 +30,14 @@ func Run(args []string) ([]byte, error) {
 
 	helper := newHelper()
 
-	if fs.help {
+	switch {
+	case fs.help:
 		fs.Usage()
-		return nil, nil
-	} else {
-		helper.printMonth(time.Date(fs.Year(), fs.Month(), 1, 0, 0, 0, 0, now.Location()))
+	case fs.version:
+		helper.printVersion(cmd)
+	default:
+		day := time.Date(fs.Year(), fs.Month(), 1, 0, 0, 0, 0, now.Location())
+		helper.printMonth(day)
 	}
 
 	return helper.bytes(), nil
@@ -104,27 +107,38 @@ func (w *wHelper) printByteTimes(ch byte, times int) {
 	}
 }
 
+func (w *wHelper) printVersion(cmd string) {
+	w.buf.WriteString(cmd)
+	w.buf.WriteByte(' ')
+	w.buf.WriteString(Version)
+	w.buf.WriteByte('\n')
+}
+
 func (w *wHelper) bytes() []byte {
 	defer w.buf.Reset()
 	return w.buf.Bytes()
 }
 
 type flagSet struct {
-	year  int
-	month int
-	help  bool
-	flags *flag.FlagSet
+	year    int
+	month   int
+	help    bool
+	version bool
+	cmd     string
+	flags   *flag.FlagSet
 }
 
 func newFlagSet(cmd string) *flagSet {
 	now := time.Now()
 
 	var fs = new(flagSet)
+	fs.cmd = cmd
 	fs.flags = flag.NewFlagSet(cmd, flag.ExitOnError)
 
 	fs.flags.IntVar(&fs.year, "y", now.Year(), "year")
 	fs.flags.IntVar(&fs.month, "m", int(now.Month()), "month")
 	fs.flags.BoolVar(&fs.help, "h", false, "print help")
+	fs.flags.BoolVar(&fs.version, "v", false, "print version")
 
 	return fs
 }
